@@ -14,6 +14,14 @@ TGAImage::TGAImage(int w, int h, int bpp) : data(NULL), width(w), height(h), byt
 	memset(data, 0, nbytes);
 }
 
+TGAImage::TGAImage(int w, int h, int bpp, unsigned char default_value) : data(NULL),
+	width(w), height(h), bytespp(bpp) 
+{
+	unsigned long nbytes = width*height*bytespp;
+	data = new unsigned char[nbytes];
+	memset(data, default_value, nbytes);
+}
+
 TGAImage::TGAImage(const TGAImage &img) {
 	width = img.width;
 	height = img.height;
@@ -350,3 +358,11 @@ bool TGAImage::scale(int w, int h) {
 	return true;
 }
 
+void TGAImage::set(int x, int y, unsigned char c)
+{
+	data[x+y*width] = c;
+}
+unsigned char TGAImage::get_value(int x, int y) const
+{
+	return data[x+y*width];
+}

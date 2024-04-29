@@ -57,6 +57,14 @@ struct TGAColor {
 		}
 		return *this;
 	}
+
+	TGAColor  operator *(float k) const {
+		TGAColor ret = *this;
+		ret.b *= k;
+		ret.g *= k;	
+		ret.r *= k;
+		return ret;
+	}
 };
 
 
@@ -76,6 +84,8 @@ public:
 
 	TGAImage();
 	TGAImage(int w, int h, int bpp);
+	TGAImage(int w, int h, int bpp, unsigned char default_value);
+
 	TGAImage(const TGAImage &img);
 	bool read_tga_file(const char *filename);
 	bool write_tga_file(const char *filename, bool rle=true);
@@ -83,6 +93,8 @@ public:
 	bool flip_vertically();
 	bool scale(int w, int h);
 	TGAColor get(int x, int y);
+	unsigned char get_value(int x, int y) const;
+	void set(int x, int y, unsigned char c);
 	bool set(int x, int y, TGAColor c);
 	~TGAImage();
 	TGAImage & operator =(const TGAImage &img);
