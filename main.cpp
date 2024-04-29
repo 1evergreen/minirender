@@ -48,7 +48,7 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color)
     }
 }
 
-Vec2i world2screen(Vec3f v, TGAImage &image)
+Vec2i world2screen(Vec3f &v, TGAImage &image)
 {
     int x = (v.x + 1) * image.get_width() / 2;
     int y = (v.y + 1) * image.get_height() / 2;
@@ -83,35 +83,30 @@ void triangle(Vec2i *pts, TGAImage &image, TGAColor color)
 
 int main(int argc, char **argv)
 {
-    // if (2 == argc)
-    // {
-    //     model = new Model(argv[1]);
-    // }
-    // else
-    // {
-    //     model = new Model("/Users/wangww/Desktop/tinyrenderer/obj/african_head.obj");
-    // }
+    if (2 == argc)
+    {
+        model = new Model(argv[1]);
+    }
+    else
+    {
+        model = new Model("/Users/wangww/Desktop/tinyrenderer/obj/african_head.obj");
+    }
 
-    // TGAImage image(width, height, TGAImage::RGB);
-    // Vec2i pts[3];
-    // std::vector<int> face;
-    // for (int i = 0; i < model->nfaces(); i++)
-    // {
-    //     face = model->face(i);
-    //     for (int j = 0; j < 3; j++)
-    //     {
-    //         pts[i] = world2screen(model->vert(face[j]), image);
-    //     }
-    //     triangle(pts, image, white);
-    // }
-    TGAImage frame(200, 200, TGAImage::RGB); 
-    Vec2i pts[3] = {Vec2i(10,10), Vec2i(100, 30), Vec2i(190, 160)}; 
-    triangle(pts, frame, red); 
-    frame.flip_vertically(); // to place the origin in the bottom left corner of the image 
-    frame.write_tga_file("/Users/wangww/Desktop/tinyrenderer/outputs/framebuffer.tga");
-    return 0; 
-    // image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
-    // image.write_tga_file("/Users/wangww/Desktop/tinyrenderer/outputs/output1.tga");
-    // delete model;
+    TGAImage image(width, height, TGAImage::RGB);
+    Vec2i pts[3];
+    for (int i = 0; i < model->nfaces(); i++)
+    {
+        std::vector<int> face = model->face(i);
+        for (int j = 0; j < 3; j++)
+        {
+            Vec3f world_coords = model->vert(face[j]);
+            pts[j] = world2screen(world_coords, image);
+        }
+        triangle(pts, image, white);
+    }
+
+    image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
+    image.write_tga_file("/Users/wangww/Desktop/tinyrenderer/outputs/output2.tga");
+    delete model;
     return 0;
 }
