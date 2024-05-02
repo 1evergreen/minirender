@@ -53,4 +53,22 @@ template <class t> std::ostream& operator<<(std::ostream& s, Vec3<t>& v) {
 	return s;
 }
 
+
+template <class T, int Rows, int Cols>
+class Matrix
+{
+public:
+	inline Matrix(){};
+	
+	
+}
+
+
+
+
+
+
+
+
+
 #endif //__GEOMETRY_H__

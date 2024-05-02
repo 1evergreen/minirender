@@ -3,6 +3,7 @@
 #include "tgaimage.h"
 #include "model.h"
 #include "geometry.h"
+
 // #include 
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
@@ -11,6 +12,8 @@ Model *model = NULL;
 const int width = 800;
 const int height = 800;
 Vec3f ColorDirection = {0, 0, -1};
+Vec3f camera = {0, 0, 3};
+
 
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color)
 {
@@ -50,7 +53,7 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color)
     }
 }
 
-Vec2i world2screen(Vec3f &v, TGAImage &image)
+Vec2i world2screen(Vec3f v, const TGAImage &image)
 {
     int x = (v.x + 1) * image.get_width() / 2;
     int y = (v.y + 1) * image.get_height() / 2;
@@ -98,12 +101,35 @@ unsigned char compute_z(Vec3f *world_coords, Vec3f &bary, unsigned char scaling_
     z = (z + 1.f) / 2.f;
     return z * scaling_factor;
 }
-void triangle(Vec2i *screen_coords, TGAImage &image, Vec3f *world_coords, ZBuffer &zbuffer, TGAColor color, float intensity)
+Vec3f interpolate(Vec3f *world_coords, Vec3f &bary)
 {
-    int xmin = std::min(std::min(screen_coords[0].x, screen_coords[1].x), screen_coords[2].x);
-    int xmax = std::max(std::max(screen_coords[0].x, screen_coords[1].x), screen_coords[2].x);
-    int ymin = std::min(std::min(screen_coords[0].y, screen_coords[1].y), screen_coords[2].y);
-    int ymax = std::max(std::max(screen_coords[0].y, screen_coords[1].y), screen_coords[2].y);
+    return world_coords[0] * bary.x + world_coords[1] * bary.y + world_coords[2] * bary.z;
+}
+
+// transformat
+Vec3f transformation(Vec3f &v)
+{
+    float factor = 1.f - (v.z  / camera.z);
+    return Vec3f{v.x / factor, v.y / factor, v.z};
+
+}
+TGAColor compute_uv_color(Vec3f *uv_coords, Vec3f &bary, const TGAImage &texture)
+{
+    Vec3f coord =  uv_coords[0] * bary.x + uv_coords[1] * bary.y + uv_coords[2] * bary.z;
+    int x = coord.x * texture.get_width();
+    int y = coord.y * texture.get_height();
+    return texture.get(x, y);
+}
+void triangle(Vec2i *screen_coords, Vec3f *world_coords, Vec3f *uv_coords, TGAImage &image, ZBuffer &zbuffer, const TGAImage &texture, float intensity)
+{
+    int xmin = std::min({screen_coords[0].x, screen_coords[1].x, screen_coords[2].x});
+    xmin = std::max(0, xmin);
+    int xmax = std::max({screen_coords[0].x, screen_coords[1].x, screen_coords[2].x});
+    xmax = std::min(image.get_width() - 1, xmax);
+    int ymin = std::min({screen_coords[0].y, screen_coords[1].y, screen_coords[2].y});
+    ymin = std::max(0, ymin);
+    int ymax = std::max({screen_coords[0].y, screen_coords[1].y, screen_coords[2].y});
+    ymax = std::min(image.get_height() - 1, ymax);
 
     for (int x = xmin; x <= xmax; ++x)
     {
@@ -117,10 +143,12 @@ void triangle(Vec2i *screen_coords, TGAImage &image, Vec3f *world_coords, ZBuffe
             if(bary.x < 0 || bary.y < 0 || bary.z < 0 || z < zbuffer.get(x, y))
                 continue;
             zbuffer.set(x, y, z);
+            auto color = compute_uv_color(uv_coords, bary, texture);
             image.set(x, y, color * intensity);
         }
     }
 }
+
 
 
 
@@ -133,30 +161,36 @@ int main(int argc, char **argv)
     else
     {
         model = new Model("/Users/wangww/Desktop/tinyrenderer/obj/african_head.obj");
+        model->load_texture("/Users/wangww/Desktop/tinyrenderer/obj/african_head_diffuse.tga");
     }
 
     TGAImage image(width, height, TGAImage::RGB);
     Vec3f world_coords[3];
-    Vec2i screen_coord[3];
+    Vec2i screen_coords[3];
+    Vec3f uv_coords[3];
     ZBuffer zbuffer(image);
-    for (int i = 0; i < model->nfaces(); i++)
+    for (int _ = 0; _ < model->nfaces(); _++)
     {
-        std::vector<int> face = model->face(i);
+        auto &face = model->face(_);
+        auto &uv_face = model->uv_face(_);
         for (int j = 0; j < 3; j++)
         {
             world_coords[j] = model->vert(face[j]);
-            screen_coord[j] = world2screen(world_coords[j], image);
+            screen_coords[j] = world2screen(transformation(world_coords[j]), image);
+            uv_coords[j] = model->uv(uv_face[j]);
         }
         float intensity = compute_intensity(world_coords);
         if(intensity > 0)
-            triangle( screen_coord, image, world_coords, zbuffer, white, intensity);
+            triangle(screen_coords, world_coords, uv_coords, image, zbuffer, model->texture(), intensity);
     }
 
     image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
-    image.write_tga_file("/Users/wangww/Desktop/tinyrenderer/outputs/output2.tga");
+    image.write_tga_file("/Users/wangww/Desktop/tinyrenderer/outputs/output4.tga");
     zbuffer.m_image->flip_vertically(); // i want to have the origin at the left bottom corner of the image
 
-    zbuffer.m_image->write_tga_file("/Users/wangww/Desktop/tinyrenderer/outputs/zbuffer.tga");
+    zbuffer.m_image->write_tga_file("/Users/wangww/Desktop/tinyrenderer/outputs/zbuffer4.tga");
     delete model;
     return 0;
 }
+
+
